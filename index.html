@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>POC — Pasar Online Cibeureum & Cibingbin</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="top">
+<div class="wrap nav">
+<a class="brand" href="#"><img src="assets/logo-poc.png" alt="POC"><div><b>POCMART</b><span>Pasar Online</span><small>Cibeureum & Cibingbin</small></div></a>
+<nav><a href="#belanja">Belanja</a><a href="#usaha">Usaha Lokal</a><a href="#jasa">Jasa</a></nav>
+<button class="cart" onclick="openCart()">🛒 <b id="count">0</b></button>
+</div>
+</header>
+<section class="hero"><div class="wrap hero-grid">
+<div><span class="eyebrow">PASAR ONLINE WILAYAH</span><h1>Belanja Lokal,<br><em>Lebih Dekat.</em></h1>
+<p>Temukan kebutuhan sehari-hari, produk UMKM, beras, kuliner, pertanian dan berbagai usaha lokal Cibeureum & Cibingbin.</p>
+<div class="search"><span>⌕</span><input id="q" oninput="renderProducts()" placeholder="Cari barang atau toko..."><button onclick="document.querySelector('#belanja').scrollIntoView({behavior:'smooth'})">Cari</button></div></div>
+<div class="hero-logo"><img src="assets/logo-poc.png" alt="POC"></div>
+</div></section>
+<section class="wrap section" id="belanja">
+<div class="section-title"><small>PILIH KEBUTUHAN</small><h2>Mau belanja apa?</h2></div>
+<div class="categories" id="categories"></div>
+<div class="result-head"><div><small id="resultLabel">SEMUA PRODUK</small><h2 id="resultTitle">Produk Pilihan</h2></div><span id="resultCount"></span></div>
+<div id="grid" class="grid"></div>
+</section>
+<section class="band" id="usaha"><div class="wrap"><small>USAHA LOKAL</small><h2>Belanja dari usaha di sekitar kita</h2><div id="business" class="business"></div></div></section>
+
+<section class="wrap section" id="jasa">
+<small>JASA & LAYANAN</small>
+<h2>Butuh jasa?</h2>
+<p>Temukan berbagai jasa dari pelaku usaha lokal di sekitar kita.</p>
+<div id="serviceList" class="services"></div>
+</section>
+
+<section class="about"><div class="wrap"><small>TENTANG POC</small><h2>Belanja Mudah, Usaha Tumbuh.</h2><p>POC — Pasar Online Cibeureum & Cibingbin menjadi wadah digital untuk mempertemukan masyarakat dengan produk dan usaha lokal.</p><strong>DARI KITA, UNTUK KITA.</strong></div></section>
+<footer>
+<div class="wrap poc-footer">
+  <div class="footer-brand">POCMART</div>
+  <div class="footer-sub">Pasar Online Cibeureum &amp; Cibingbin</div>
+  <p>Platform marketplace lokal yang menghubungkan masyarakat dengan produk dan usaha di sekitar.</p>
+  <strong>Powered by Batara Project</strong>
+  <small>© 2026 POCMART</small>
+</div>
+</footer>
+<div id="modal" class="modal" onclick="if(event.target===this)closeCart()"><div class="box"><button class="x" onclick="closeCart()">×</button><small>KERANJANG BELANJA</small><h2>Pesanan kamu</h2><div id="items"></div><div class="total"><span>Total</span><b id="total">Rp0</b></div><button class="checkout" onclick="checkout()">🟢 Lanjut Pesan via WhatsApp</button></div></div>
+<script src="data.js"></script>
+<script>
+let activeCategory="Semua",cart=[];
+const rupiah=n=>new Intl.NumberFormat('id-ID',{style:'currency',currency:'IDR',maximumFractionDigits:0}).format(Number(n)||0);
+
+function getProducts(){
+  try{
+    const raw=localStorage.getItem("poc_products");
+    if(raw!==null){
+      const saved=JSON.parse(raw);
+      if(Array.isArray(saved)) return saved;
+    }
+  }catch(e){}
+  return Array.isArray(products)?products.map(p=>({...p})): [];
+}
+function getServices(){
+  try{
+    const raw=localStorage.getItem("poc_services");
+    if(raw!==null){
+      const saved=JSON.parse(raw);
+      if(Array.isArray(saved)) return saved;
+    }
+  }catch(e){}
+  return [];
+}
+function seedIfNeeded(){
+  try{
+    const seedKey="poc_seed_version";
+    const seeded=localStorage.getItem(seedKey);
+    if(seeded!=="v2"){
+      const current=JSON.parse(localStorage.getItem("poc_products")||"null");
+      if(!Array.isArray(current) || current.length===0){
+        localStorage.setItem("poc_products",JSON.stringify(products.map(p=>({...p}))));
+      }
+      if(localStorage.getItem("poc_services")===null){
+        localStorage.setItem("poc_services","[]");
+      }
+      localStorage.setItem(seedKey,"v2");
+    }
+  }catch(e){}
+}
+function refreshData(){seedIfNeeded();return {products:getProducts(),services:getServices()};}
+
+const cats=[["Semua","🛍️"],["Beras","🌾"],["Sembako","🛒"],["Kuliner","🍜"],["Kebutuhan Rumah","🏠"],["Pertanian","🌱"],["Fashion","👕"],["Elektronik","📱"],["Lainnya","📦"]];
+function renderCategories(){
+ document.getElementById("categories").innerHTML=cats.map(([name,icon])=>`<button type="button" class="cat ${activeCategory===name?'active':''}" onclick="setCategory('${name}')"><span>${icon}</span><b>${name}</b></button>`).join("");
+}
+function setCategory(c){activeCategory=c;renderCategories();renderProducts();document.getElementById("grid").scrollIntoView({behavior:"smooth",block:"start"});}
+function renderProducts(){
+ const data=refreshData(), listProducts=data.products;
+ const q=(document.getElementById("q").value||"").toLowerCase().trim();
+ const filtered=listProducts.filter(p=>(activeCategory==="Semua"||p.category===activeCategory)&&`${p.name} ${p.shop} ${p.category} ${p.desc||""}`.toLowerCase().includes(q));
+ document.getElementById("resultLabel").textContent=(activeCategory==="Semua"?"SEMUA PRODUK":activeCategory.toUpperCase());
+ document.getElementById("resultTitle").textContent=activeCategory==="Semua"?"Produk Pilihan":activeCategory;
+ document.getElementById("resultCount").textContent=`${filtered.length} produk`;
+ document.getElementById("grid").innerHTML=filtered.length?filtered.map(p=>`<article class="card"><div class="pic">${p.image?`<img src="${p.image}" alt="${p.name}">`:`<span>${p.emoji||"🛍️"}</span>`}</div><div class="body"><div class="shop">${p.shop||"Toko Lokal"}</div><h3>${p.name}</h3><b class="price">${rupiah(p.price)}</b><p>${p.desc||"Produk lokal pilihan."}</p><div class="stock">Stok ${p.stock??0} · ${p.category}</div><button type="button" onclick="add(${p.id})">+ Masukkan Keranjang</button></div></article>`).join(""):`<div class="empty"><div>🔎</div><h3>Produk belum ditemukan</h3><p>Coba kategori atau kata kunci lain.</p></div>`;
+}
+function renderServices(){
+ const list=refreshData().services;
+ const el=document.getElementById("serviceList");
+ if(!list.length){
+   el.innerHTML='<article><span>🛠️</span><div><h3>Jasa & Layanan Lokal</h3><p>Jasa Penggilingan Padi, Laundry, Bengkel, Servis HP & Elektronik, Jasa Tukang/Renovasi, Angkutan, Kebersihan, Fotokopi & Percetakan, Pertanian, Komputer, Fotografi, Pengiriman dan jasa lokal lainnya akan tampil di sini.</p></div></article>';
+   return;
+ }
+ el.innerHTML=list.map(s=>`<article>${s.image?`<img src="${s.image}" alt="${s.name}" style="width:72px;height:72px;object-fit:cover;border-radius:14px">`:`<span>🛠️</span>`}<div><h3>${s.name}</h3><p>${s.category||"Jasa Lainnya"}${s.address?` · ${s.address}`:""}</p>${s.desc?`<p>${s.desc}</p>`:""}${s.price?`<p><b>${s.price}</b></p>`:""}${s.wa?`<a href="https://wa.me/${String(s.wa).replace(/\D/g,'')}" target="_blank" rel="noopener">Hubungi WhatsApp →</a>`:""}</div></article>`).join("");
+}
+function add(id){
+ const p=getProducts().find(x=>Number(x.id)===Number(id)); if(!p)return;
+ const i=cart.find(x=>Number(x.id)===Number(id)); if(i)i.qty++; else cart.push({id:p.id,qty:1});
+ updateCartCount();
+}
+function updateCartCount(){document.getElementById("count").textContent=cart.reduce((a,b)=>a+b.qty,0);}
+function openCart(){document.getElementById("modal").style.display="flex";renderCart();}
+function renderCart(){
+ let total=0,ps=getProducts();
+ if(!cart.length)document.getElementById("items").innerHTML='<div class="empty-cart">Keranjang masih kosong.</div>';
+ else document.getElementById("items").innerHTML=cart.map(i=>{
+   const p=ps.find(x=>Number(x.id)===Number(i.id)); if(!p)return "";
+   total+=Number(p.price)*i.qty;
+   return `<div class="cart-row"><div class="cart-info"><b>${p.name}</b><small>${p.shop||"Toko Lokal"}</small><span>${rupiah(p.price)} / item</span></div><div class="cart-actions"><b>${rupiah(p.price*i.qty)}</b><div class="qty"><button type="button" onclick="changeQty(${p.id},-1)">−</button><strong>${i.qty}</strong><button type="button" onclick="changeQty(${p.id},1)">+</button></div><button type="button" class="remove-item" onclick="removeItem(${p.id})">Hapus</button></div></div>`;
+ }).join("");
+ document.getElementById("total").textContent=rupiah(total);updateCartCount();
+}
+function changeQty(id,delta){const item=cart.find(x=>Number(x.id)===Number(id));if(!item)return;item.qty+=delta;if(item.qty<=0)cart=cart.filter(x=>Number(x.id)!==Number(id));renderCart();}
+function removeItem(id){cart=cart.filter(x=>Number(x.id)!==Number(id));renderCart();}
+function closeCart(){document.getElementById("modal").style.display="none";}
+function checkout(){
+ if(!cart.length){alert("Keranjang masih kosong.");return;}
+ let msg="Halo Admin POC, saya ingin memesan:%0A%0A",total=0,ps=getProducts();
+ cart.forEach(i=>{const p=ps.find(x=>Number(x.id)===Number(i.id));if(!p)return;total+=p.price*i.qty;msg+=`• ${p.name} x${i.qty} — ${rupiah(p.price*i.qty)}%0A`;});
+ msg+=`%0ATotal: ${rupiah(total)}`;window.open("https://wa.me/"+ADMIN_WA+"?text="+msg,"_blank");
+}
+function wa(m){window.open("https://wa.me/"+ADMIN_WA+"?text="+encodeURIComponent(m),"_blank")}
+function renderBusiness(){document.getElementById("business").innerHTML=businesses.map(b=>`<article><span>${b.icon}</span><div><h3>${b.name}</h3><small>${b.cat}</small><p>${b.desc}</p></div></article>`).join("");}
+function refreshMarketplace(){renderCategories();renderProducts();renderServices();renderBusiness();}
+refreshMarketplace();
+</script>
+</body></html>
