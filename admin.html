@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>POCMART Admin — Login</title>
+<link rel="stylesheet" href="admin.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-config.js"></script>
+</head>
+<body>
+<main class="login">
+ <div class="login-card">
+  <img src="assets/logo-poc.png" alt="POCMART">
+  <small>POCMART ADMIN</small><h1>Selamat datang</h1>
+  <p>Masuk menggunakan akun Admin Supabase.</p>
+  <form onsubmit="login(event)">
+   <label>Email<input id="email" type="email" autocomplete="username" required></label>
+   <label>Password<input id="password" type="password" autocomplete="current-password" required></label>
+   <button>Masuk ke Dashboard</button><div id="err"></div>
+  </form>
+  <a href="index.html">← Kembali ke website pelanggan</a>
+ </div>
+</main>
+<script>
+const cfg=window.POCMART_CONFIG||{};
+const client=supabase.createClient(cfg.SUPABASE_URL,cfg.SUPABASE_ANON_KEY);
+async function login(e){
+ e.preventDefault();err.textContent="";
+ const {error}=await client.auth.signInWithPassword({email:email.value.trim(),password:password.value});
+ if(error){err.textContent="Login gagal: "+error.message;return}
+ location.href="admin-dashboard.html";
+}
+</script>
+</body></html>
