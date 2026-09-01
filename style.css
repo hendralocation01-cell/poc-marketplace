@@ -88,3 +88,26 @@
   .grid{grid-template-columns:1fr}
   .card{max-width:280px}
 }
+/* FIX FOTO PRODUK POCMART */
+.pic{
+  height:auto !important;
+  aspect-ratio:1 / 1;
+  padding:8px;
+  background:#f4f7f4;
+}
+
+.pic img{
+  width:100%;
+  height:100%;
+  object-fit:contain !important;
+  object-position:center;
+  display:block;
+}
+
+.grid{
+  align-items:start;
+}
+
+.card{
+  height:auto;
+}
