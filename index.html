@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>POCMART — Pasar Online Cibeureum & Cibingbin</title>
+<meta name="description" content="POCMART — marketplace lokal Cibeureum & Cibingbin. Belanja produk lokal dan temukan jasa di sekitar.">
+<link rel="stylesheet" href="style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-config.js"></script>
+</head>
+<body>
+<header class="top">
+  <div class="wrap nav">
+    <a class="brand" href="#"><img src="assets/logo-poc.png" alt="POCMART"><div><b>POCMART</b><span>Pasar Online</span><small>Cibeureum & Cibingbin</small></div></a>
+    <nav><a href="#belanja">Belanja</a><a href="#usaha">Usaha Lokal</a><a href="#jasa">Jasa & Layanan</a></nav>
+    <button class="cart" onclick="openCart()">🛒 <b id="count">0</b></button>
+  </div>
+</header>
+
+<section class="hero"><div class="wrap hero-grid">
+  <div>
+    <span class="eyebrow">PASAR ONLINE WILAYAH</span>
+    <h1>Belanja Lokal,<br><em>Lebih Dekat.</em></h1>
+    <p>Temukan kebutuhan sehari-hari, produk UMKM, kuliner, pertanian dan berbagai jasa lokal Cibeureum & Cibingbin.</p>
+    <div class="search"><span>⌕</span><input id="q" oninput="renderProducts()" placeholder="Cari barang, toko, atau kategori..."><button onclick="document.querySelector('#belanja').scrollIntoView({behavior:'smooth'})">Cari</button></div>
+  </div>
+  <div class="hero-logo"><img src="assets/logo-poc.png" alt="POCMART"></div>
+</div></section>
+
+<section class="wrap section" id="belanja">
+  <div class="section-title"><small>PILIH KEBUTUHAN</small><h2>Mau belanja apa?</h2></div>
+  <div class="categories" id="categories"></div>
+  <div class="result-head"><div><small id="resultLabel">SEMUA PRODUK</small><h2 id="resultTitle">Produk Pilihan</h2></div><span id="resultCount"></span></div>
+  <div id="grid" class="grid"><div class="loading-state">Memuat produk POCMART...</div></div>
+</section>
+
+<section class="band" id="usaha">
+  <div class="wrap"><small>USAHA LOKAL</small><h2>Belanja dari usaha di sekitar kita</h2><div id="business" class="business"></div></div>
+</section>
+
+<section class="wrap section" id="jasa">
+  <small>JASA & LAYANAN</small>
+  <h2>Butuh jasa?</h2>
+  <p>Penggilingan Padi, Laundry, Bengkel, Servis HP & Elektronik, Tukang/Renovasi, Angkutan, Kebersihan, Fotokopi & Percetakan, Pertanian, Komputer, Fotografi, Pengiriman dan jasa lokal lainnya.</p>
+  <div id="serviceList" class="services"><div class="loading-state">Memuat jasa & layanan...</div></div>
+</section>
+
+<section class="about"><div class="wrap">
+  <small>TENTANG POCMART</small><h2>Belanja Mudah, Usaha Tumbuh.</h2>
+  <p>POCMART adalah platform marketplace lokal yang mempertemukan masyarakat dengan produk, usaha, dan jasa di sekitar Cibeureum & Cibingbin.</p>
+  <strong>DARI KITA, UNTUK KITA.</strong>
+</div></section>
+
+<footer><div class="wrap poc-footer">
+  <div class="footer-brand">POCMART</div>
+  <div class="footer-sub">Pasar Online Cibeureum &amp; Cibingbin</div>
+  <p>Platform marketplace lokal yang menghubungkan masyarakat dengan produk dan usaha di sekitar.</p>
+  <strong>Powered by Batara Project</strong>
+  <small>© 2026 POCMART</small>
+</div></footer>
+
+<div id="modal" class="modal" onclick="if(event.target===this)closeCart()">
+  <div class="box">
+    <button class="x" onclick="closeCart()">×</button>
+    <small>KERANJANG BELANJA</small><h2>Pesanan kamu</h2>
+    <div id="items"></div>
+
+    <div class="checkout-form">
+      <h3>Data Pengiriman</h3>
+      <label>Nama Penerima<input id="customerName" placeholder="Nama lengkap"></label>
+      <label>Nomor WhatsApp<input id="customerPhone" type="tel" placeholder="08xxxxxxxxxx"></label>
+      <label>Alamat Lengkap<textarea id="customerAddress" placeholder="Desa, RT/RW, patokan rumah..."></textarea></label>
+      <label>Pengiriman<select id="shipping" onchange="renderCart()"></select></label>
+    </div>
+
+    <div class="checkout-summary">
+      <div><span>Subtotal</span><b id="subtotal">Rp0</b></div>
+      <div><span>Ongkir</span><b id="shippingCost">Rp0</b></div>
+      <div class="grand-total"><span>TOTAL</span><b id="total">Rp0</b></div>
+    </div>
+
+    <button class="checkout" onclick="checkout()">🟢 Lanjut Pesan via WhatsApp</button>
+  </div>
+</div>
+
+<script>
+const cfg=window.POCMART_CONFIG||{};
+const client=supabase.createClient(cfg.SUPABASE_URL,cfg.SUPABASE_ANON_KEY);
+let products=[],services=[],shippingZones=[],cart=[],activeCategory="Semua";
+
+const categories=[
+ ["Semua","🛍️"],["Beras & Sembako","🛒"],["Kuliner","🍜"],["Pertanian","🌱"],
+ ["Kebutuhan Rumah","🏠"],["Fashion","👕"],["Elektronik","📱"],["Produk UMKM","🧺"],["Lainnya","📦"]
+];
+const rupiah=n=>new Intl.NumberFormat("id-ID",{style:"currency",currency:"IDR",maximumFractionDigits:0}).format(Number(n)||0);
+const esc=v=>String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]));
+
+function configReady(){
+ return cfg.SUPABASE_URL && cfg.SUPABASE_ANON_KEY &&
+ !cfg.SUPABASE_URL.includes("PASTE_") && !cfg.SUPABASE_ANON_KEY.includes("PASTE_");
+}
+
+async function loadAll(){
+ renderCategories();
+ if(!configReady()){
+   document.getElementById("grid").innerHTML='<div class="error-state">Supabase belum dikonfigurasi. Isi <b>supabase-config.js</b> terlebih dahulu.</div>';
+   document.getElementById("serviceList").innerHTML='<div class="error-state">Database belum terhubung.</div>';
+   return;
+ }
+ const [p,s,z]=await Promise.all([
+   client.from("products").select("*").eq("active",true).order("created_at",{ascending:false}),
+   client.from("services").select("*").eq("active",true).order("created_at",{ascending:false}),
+   client.from("shipping_zones").select("*").eq("active",true).order("sort_order",{ascending:true})
+ ]);
+ if(p.error) console.error(p.error); else products=p.data||[];
+ if(s.error) console.error(s.error); else services=s.data||[];
+ if(z.error) console.error(z.error); else shippingZones=z.data||[];
+ renderProducts();renderServices();renderBusiness();renderShipping();
+}
+
+function renderCategories(){
+ document.getElementById("categories").innerHTML=categories.map(([name,icon])=>`<button class="cat ${activeCategory===name?"active":""}" onclick="setCategory('${name.replace(/'/g,"\\'")}')"><span>${icon}</span><b>${name}</b></button>`).join("");
+}
+function setCategory(c){activeCategory=c;renderCategories();renderProducts();}
+function renderProducts(){
+ const q=(document.getElementById("q").value||"").toLowerCase().trim();
+ const list=products.filter(p=>(activeCategory==="Semua"||p.category===activeCategory)&&`${p.name} ${p.shop_name||""} ${p.category||""} ${p.description||""}`.toLowerCase().includes(q));
+ document.getElementById("resultLabel").textContent=activeCategory==="Semua"?"SEMUA PRODUK":activeCategory.toUpperCase();
+ document.getElementById("resultTitle").textContent=activeCategory==="Semua"?"Produk Pilihan":activeCategory;
+ document.getElementById("resultCount").textContent=`${list.length} produk`;
+ document.getElementById("grid").innerHTML=list.length?list.map(p=>`
+  <article class="card">
+   <div class="pic">${p.image_url?`<img src="${esc(p.image_url)}" alt="${esc(p.name)}">`:`<span>🛍️</span>`}</div>
+   <div class="body">
+    <div class="shop">${esc(p.shop_name||"Toko Lokal")}</div>
+    <h3>${esc(p.name)}</h3>
+    <b class="price">${rupiah(p.price)}</b>
+    <p>${esc(p.description||"Produk lokal pilihan.")}</p>
+    <div class="stock">Stok ${Number(p.stock)||0} · ${esc(p.category||"Lainnya")}</div>
+    <button onclick="addToCart('${p.id}')">+ Masukkan Keranjang</button>
+   </div>
+  </article>`).join(""):'<div class="empty"><div>🔎</div><h3>Produk belum ditemukan</h3><p>Coba kategori atau kata kunci lain.</p></div>';
+}
+
+function renderServices(){
+ const el=document.getElementById("serviceList");
+ el.innerHTML=services.length?services.map(s=>`
+  <article>
+   ${s.image_url?`<img src="${esc(s.image_url)}" alt="${esc(s.name)}">`:`<span>🛠️</span>`}
+   <div>
+    <h3>${esc(s.name)}</h3>
+    <div class="service-meta">${esc(s.category||"Jasa Lainnya")}${s.address?` · ${esc(s.address)}`:""}</div>
+    ${s.description?`<p>${esc(s.description)}</p>`:""}
+    ${s.price_label?`<p class="service-price">${esc(s.price_label)}</p>`:""}
+    ${s.whatsapp?`<a target="_blank" rel="noopener" href="https://wa.me/${String(s.whatsapp).replace(/\D/g,"")}">Hubungi WhatsApp →</a>`:""}
+   </div>
+  </article>`).join(""):'<article><span>🛠️</span><div><h3>Jasa & Layanan Lokal</h3><p>Belum ada jasa yang ditambahkan Admin.</p></div></article>';
+}
+
+function renderBusiness(){
+ const map=new Map();
+ products.forEach(p=>{
+   const key=(p.shop_name||"Toko Lokal").trim();
+   if(!map.has(key)) map.set(key,{name:key,address:p.shop_address||"",count:0});
+   map.get(key).count++;
+ });
+ const list=[...map.values()];
+ document.getElementById("business").innerHTML=list.length?list.map(b=>`
+ <article><span>🏪</span><div><h3>${esc(b.name)}</h3><small>${b.count} produk</small><p>${b.address?`📍 ${esc(b.address)}`:"Usaha lokal POCMART"}</p></div></article>`).join(""):'<article><span>🏪</span><div><h3>Usaha Lokal</h3><p>Belum ada toko yang memiliki produk aktif.</p></div></article>';
+}
+
+function renderShipping(){
+ const el=document.getElementById("shipping");
+ el.innerHTML=shippingZones.length?shippingZones.map(z=>`<option value="${Number(z.cost)||0}" data-name="${esc(z.name)}">${esc(z.name)} — ${rupiah(z.cost)}</option>`).join(""):'<option value="0" data-name="Ambil sendiri">Ambil sendiri — Rp0</option>';
+}
+function addToCart(id){const item=cart.find(x=>x.id===id);if(item)item.qty++;else cart.push({id,qty:1});updateCartCount();}
+function updateCartCount(){document.getElementById("count").textContent=cart.reduce((a,b)=>a+b.qty,0);}
+function subtotal(){return cart.reduce((sum,i)=>{const p=products.find(x=>x.id===i.id);return sum+(p?Number(p.price)*i.qty:0)},0);}
+function shippingData(){const el=document.getElementById("shipping"),opt=el.options[el.selectedIndex];return {cost:Number(el.value)||0,name:opt?.dataset.name||"Ambil sendiri"};}
+function openCart(){document.getElementById("modal").style.display="flex";renderCart();}
+function closeCart(){document.getElementById("modal").style.display="none";}
+function renderCart(){
+ document.getElementById("items").innerHTML=cart.length?cart.map(i=>{const p=products.find(x=>x.id===i.id);if(!p)return"";return `<div class="cart-row"><div class="cart-info"><b>${esc(p.name)}</b><small>${esc(p.shop_name||"Toko Lokal")}</small><span>${rupiah(p.price)} / item</span></div><div class="cart-actions"><b>${rupiah(Number(p.price)*i.qty)}</b><div class="qty"><button onclick="changeQty('${p.id}',-1)">−</button><strong>${i.qty}</strong><button onclick="changeQty('${p.id}',1)">+</button></div><button class="remove-item" onclick="removeItem('${p.id}')">Hapus</button></div></div>`}).join(""):'<div class="empty-cart">Keranjang masih kosong.</div>';
+ const sub=subtotal(),ship=shippingData();
+ document.getElementById("subtotal").textContent=rupiah(sub);
+ document.getElementById("shippingCost").textContent=rupiah(ship.cost);
+ document.getElementById("total").textContent=rupiah(sub+ship.cost);
+ updateCartCount();
+}
+function changeQty(id,d){const item=cart.find(x=>x.id===id);if(!item)return;item.qty+=d;if(item.qty<=0)cart=cart.filter(x=>x.id!==id);renderCart();}
+function removeItem(id){cart=cart.filter(x=>x.id!==id);renderCart();}
+
+async function checkout(){
+ if(!cart.length)return alert("Keranjang masih kosong.");
+ const name=document.getElementById("customerName").value.trim();
+ const phone=document.getElementById("customerPhone").value.trim();
+ const address=document.getElementById("customerAddress").value.trim();
+ if(!name||!phone||!address)return alert("Lengkapi nama, WhatsApp, dan alamat.");
+ const sub=subtotal(),ship=shippingData(),total=sub+ship.cost;
+ const orderItems=cart.map(i=>{const p=products.find(x=>x.id===i.id);return {product_id:p.id,name:p.name,price:Number(p.price),qty:i.qty,subtotal:Number(p.price)*i.qty}});
+ const insert=await client.from("orders").insert({
+   customer_name:name,customer_phone:phone,customer_address:address,
+   shipping_zone:ship.name,shipping_cost:ship.cost,subtotal:sub,total,
+   items:orderItems,status:"new"
+ });
+ if(insert.error) console.warn("Order log gagal:",insert.error.message);
+ const lines=["Halo Admin POCMART, saya ingin memesan:",""];
+ orderItems.forEach((i,n)=>{lines.push(`${n+1}. ${i.name}`);lines.push(`   ${i.qty} x ${rupiah(i.price)} = ${rupiah(i.subtotal)}`)});
+ lines.push("",`Subtotal: ${rupiah(sub)}`,`Ongkir (${ship.name}): ${rupiah(ship.cost)}`,`TOTAL: ${rupiah(total)}`,"","DATA PENERIMA",`Nama: ${name}`,`WhatsApp: ${phone}`,`Alamat: ${address}`);
+ window.open(`https://wa.me/${String(cfg.ADMIN_WHATSAPP||"").replace(/\D/g,"")}?text=${encodeURIComponent(lines.join("\n"))}`,"_blank");
+}
+loadAll();
+</script>
+</body>
+</html>
