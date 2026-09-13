@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Pesanan Saya — POCMART</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="supabase-config.js"></script>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:#f5f6f8;color:#17202a}.top{background:#fff;border-bottom:1px solid #e7e7e7}.wrap{max-width:900px;margin:auto;padding:18px}.nav{display:flex;align-items:center;justify-content:space-between;gap:15px}.brand{display:flex;align-items:center;gap:10px;text-decoration:none;color:#111}.brand img{width:48px;height:48px;object-fit:contain}.brand b{display:block;font-size:20px}.brand small{color:#777}.back{background:#111;color:#fff;text-decoration:none;padding:10px 14px;border-radius:9px}.hero h1{margin-bottom:6px}.hero p{color:#68717b}.account,.order,.empty,.error{background:#fff;border:1px solid #e5e5e5;border-radius:14px;padding:18px;margin-bottom:14px}.order-head{display:flex;justify-content:space-between;gap:12px;border-bottom:1px solid #eee;padding-bottom:12px;margin-bottom:12px}.date{font-size:13px;color:#777;margin-top:4px}.status{padding:7px 10px;border-radius:999px;font-size:12px;font-weight:bold;background:#fff4cf;color:#795d00;height:max-content}.processing{background:#e9f2ff;color:#1458a5}.shipped{background:#eee9ff;color:#5534a5}.done{background:#e7f7ed;color:#176b32}.cancelled{background:#fdeaea;color:#a51d1d}.item,.row{display:flex;justify-content:space-between;gap:12px;padding:6px 0}.summary{border-top:1px dashed #ddd;margin-top:10px;padding-top:8px}.total{font-size:18px;font-weight:bold}.address{background:#f7f7f7;border-radius:9px;padding:10px;margin-top:12px;font-size:13px;line-height:1.5}.logout{margin-top:10px;border:0;border-radius:8px;padding:9px 12px}.empty,.error{text-align:center;color:#666}@media(max-width:600px){.wrap{padding:14px}.order-head{display:block}.status{display:inline-block;margin-top:9px}}
+</style></head><body>
+<header class="top"><div class="wrap nav"><a class="brand" href="index.html"><img src="assets/logo-poc.png" alt="POCMART"><div><b>POCMART</b><small>Pesanan Saya</small></div></a><a class="back" href="index.html">← Belanja</a></div></header>
+<section class="wrap hero"><h1>Pesanan Saya</h1><p>Lihat perkembangan pesanan dari akun POCMART kamu.</p><div id="account" class="account">Memeriksa akun…</div></section>
+<main class="wrap"><div id="orders"><div class="empty">Memuat pesanan…</div></div></main>
+<script>
+const cfg=window.POCMART_CONFIG||{};let client=null;
+const rupiah=n=>new Intl.NumberFormat("id-ID",{style:"currency",currency:"IDR",maximumFractionDigits:0}).format(Number(n)||0);
+const esc=v=>String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]));
+function statusInfo(s){const k=String(s||"new").toLowerCase(),m={new:["Menunggu Konfirmasi",""],pending:["Menunggu Konfirmasi",""],processing:["Diproses","processing"],processed:["Diproses","processing"],shipped:["Dikirim","shipped"],delivered:["Selesai","done"],done:["Selesai","done"],completed:["Selesai","done"],cancelled:["Dibatalkan","cancelled"],canceled:["Dibatalkan","cancelled"]};return m[k]||[s||"Menunggu Konfirmasi",""]}
+function formatDate(v){try{return new Intl.DateTimeFormat("id-ID",{dateStyle:"medium",timeStyle:"short"}).format(new Date(v))}catch{return v||"-"}}
+async function logout(){if(client)await client.auth.signOut();location.href="login.html"}
+async function loadOrders(){
+ const box=document.getElementById("orders"),account=document.getElementById("account");
+ if(!cfg.SUPABASE_URL||!cfg.SUPABASE_ANON_KEY||!window.supabase){box.innerHTML='<div class="error">Supabase belum tersedia.</div>';return}
+ client=supabase.createClient(cfg.SUPABASE_URL,cfg.SUPABASE_ANON_KEY);
+ const {data:a}=await client.auth.getUser(),user=a?.user;
+ if(!user){account.innerHTML='Kamu belum masuk.';box.innerHTML='<div class="empty">Silakan <a href="login.html">masuk</a> untuk melihat pesanan.</div>';return}
+ const nama=user.user_metadata?.nama||user.email?.split("@")[0]||"Customer";
+ account.innerHTML=`<b>👤 ${esc(nama)}</b><br><small>${esc(user.email||"")}</small><br><button class="logout" onclick="logout()">Keluar</button>`;
+ const {data,error}=await client.from("orders").select("*").eq("user_id",user.id).order("created_at",{ascending:false});
+ if(error){box.innerHTML=`<div class="error">Pesanan belum bisa dimuat: ${esc(error.message||"")}</div>`;return}
+ const orders=data||[];if(!orders.length){box.innerHTML='<div class="empty"><b>Belum ada pesanan.</b><br><br>Pesanan baru yang kamu checkout akan muncul di sini.</div>';return}
+ box.innerHTML=orders.map(o=>{const [label,cls]=statusInfo(o.status),items=Array.isArray(o.items)?o.items:[];return `<article class="order"><div class="order-head"><div><b>Pesanan #${esc(String(o.id||"").slice(0,8).toUpperCase())}</b><div class="date">${formatDate(o.created_at)}</div></div><span class="status ${cls}">${esc(label)}</span></div>${items.map(i=>`<div class="item"><span>${esc(i.name)} × ${Number(i.qty)||0}</span><b>${rupiah(i.subtotal)}</b></div>`).join("")}<div class="summary"><div class="row"><span>Subtotal</span><span>${rupiah(o.subtotal)}</span></div><div class="row"><span>Ongkir${o.shipping_zone?` (${esc(o.shipping_zone)})`:""}</span><span>${rupiah(o.shipping_cost)}</span></div><div class="row total"><span>Total</span><span>${rupiah(o.total)}</span></div></div>${o.customer_address?`<div class="address"><b>Alamat Pengiriman</b><br>${esc(o.customer_name||"")} · ${esc(o.customer_phone||"")}<br>${esc(o.customer_address)}</div>`:""}</article>`}).join("");
+}loadOrders();
+</script></body></html>
