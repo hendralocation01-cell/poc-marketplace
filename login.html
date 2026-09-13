@@ -1,1 +1,435 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
+  <title>Login Customer | POCMART</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: Arial, sans-serif;
+    }
+
+    body {
+      min-height: 100vh;
+      background: #f4f6f8;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+    }
+
+    .login-box {
+      background: white;
+      width: 100%;
+      max-width: 420px;
+      padding: 30px 25px;
+      border-radius: 16px;
+      box-shadow: 0 8px 30px rgba(0,0,0,.10);
+    }
+
+    .logo {
+      text-align: center;
+      margin-bottom: 10px;
+    }
+
+    .logo img {
+      width: 90px;
+      max-height: 90px;
+      object-fit: contain;
+    }
+
+    h1 {
+      text-align: center;
+      font-size: 25px;
+      margin-bottom: 5px;
+    }
+
+    .subtitle {
+      text-align: center;
+      color: #666;
+      font-size: 14px;
+      margin-bottom: 25px;
+    }
+
+    .tabs {
+      display: flex;
+      background: #eee;
+      border-radius: 10px;
+      padding: 4px;
+      margin-bottom: 22px;
+    }
+
+    .tabs button {
+      flex: 1;
+      padding: 11px;
+      border: none;
+      background: transparent;
+      border-radius: 8px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .tabs button.active {
+      background: #111;
+      color: white;
+    }
+
+    .form {
+      display: none;
+    }
+
+    .form.active {
+      display: block;
+    }
+
+    label {
+      display: block;
+      font-size: 14px;
+      font-weight: bold;
+      margin: 14px 0 6px;
+    }
+
+    input {
+      width: 100%;
+      padding: 13px;
+      border: 1px solid #ccc;
+      border-radius: 9px;
+      font-size: 15px;
+      outline: none;
+    }
+
+    input:focus {
+      border-color: #222;
+    }
+
+    .btn {
+      width: 100%;
+      border: none;
+      background: #111;
+      color: white;
+      padding: 14px;
+      border-radius: 9px;
+      margin-top: 20px;
+      font-size: 15px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .message {
+      margin-top: 15px;
+      padding: 10px;
+      border-radius: 8px;
+      font-size: 13px;
+      display: none;
+    }
+
+    .success {
+      display: block;
+      background: #e8f7ed;
+      color: #176b32;
+    }
+
+    .error {
+      display: block;
+      background: #fdeaea;
+      color: #a51d1d;
+    }
+
+    .back {
+      display: block;
+      text-align: center;
+      margin-top: 22px;
+      color: #555;
+      text-decoration: none;
+      font-size: 14px;
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="login-box">
+
+  <div class="logo">
+    <img src="logo-poc.png" alt="POCMART">
+  </div>
+
+  <h1>POCMART</h1>
+  <div class="subtitle">
+    Masuk untuk berbelanja dan melacak pesanan Anda
+  </div>
+
+  <div class="tabs">
+    <button id="tabLogin" class="active" onclick="showLogin()">
+      Masuk
+    </button>
+
+    <button id="tabRegister" onclick="showRegister()">
+      Daftar
+    </button>
+  </div>
+
+  <!-- LOGIN -->
+
+  <div id="loginForm" class="form active">
+
+    <label>Email</label>
+    <input
+      type="email"
+      id="loginEmail"
+      placeholder="contoh@email.com"
+    >
+
+    <label>Password</label>
+    <input
+      type="password"
+      id="loginPassword"
+      placeholder="Masukkan password"
+    >
+
+    <button class="btn" onclick="loginCustomer()">
+      Masuk
+    </button>
+
+    <div id="loginMessage" class="message"></div>
+
+  </div>
+
+
+  <!-- REGISTER -->
+
+  <div id="registerForm" class="form">
+
+    <label>Nama Lengkap</label>
+    <input
+      type="text"
+      id="registerName"
+      placeholder="Nama lengkap"
+    >
+
+    <label>Nomor WhatsApp</label>
+    <input
+      type="tel"
+      id="registerPhone"
+      placeholder="08xxxxxxxxxx"
+    >
+
+    <label>Email</label>
+    <input
+      type="email"
+      id="registerEmail"
+      placeholder="contoh@email.com"
+    >
+
+    <label>Password</label>
+    <input
+      type="password"
+      id="registerPassword"
+      placeholder="Minimal 6 karakter"
+    >
+
+    <button class="btn" onclick="registerCustomer()">
+      Daftar Customer
+    </button>
+
+    <div id="registerMessage" class="message"></div>
+
+  </div>
+
+  <a class="back" href="index.html">
+    ← Kembali ke POCMART
+  </a>
+
+</div>
+
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<script src="supabase-config.js"></script>
+
+<script>
+
+function showLogin() {
+
+  document.getElementById("loginForm").classList.add("active");
+  document.getElementById("registerForm").classList.remove("active");
+
+  document.getElementById("tabLogin").classList.add("active");
+  document.getElementById("tabRegister").classList.remove("active");
+}
+
+
+function showRegister() {
+
+  document.getElementById("registerForm").classList.add("active");
+  document.getElementById("loginForm").classList.remove("active");
+
+  document.getElementById("tabRegister").classList.add("active");
+  document.getElementById("tabLogin").classList.remove("active");
+}
+
+
+async function registerCustomer() {
+
+  const name =
+    document.getElementById("registerName").value.trim();
+
+  const phone =
+    document.getElementById("registerPhone").value.trim();
+
+  const email =
+    document.getElementById("registerEmail").value.trim();
+
+  const password =
+    document.getElementById("registerPassword").value;
+
+  const message =
+    document.getElementById("registerMessage");
+
+
+  if (!name || !phone || !email || !password) {
+
+    showMessage(
+      message,
+      "Semua data wajib diisi.",
+      false
+    );
+
+    return;
+  }
+
+
+  if (password.length < 6) {
+
+    showMessage(
+      message,
+      "Password minimal 6 karakter.",
+      false
+    );
+
+    return;
+  }
+
+
+  const { data, error } =
+    await supabaseClient.auth.signUp({
+
+      email: email,
+
+      password: password,
+
+      options: {
+
+        data: {
+          nama: name,
+          whatsapp: phone
+        }
+
+      }
+
+    });
+
+
+  if (error) {
+
+    showMessage(
+      message,
+      error.message,
+      false
+    );
+
+    return;
+  }
+
+
+  showMessage(
+    message,
+    "Pendaftaran berhasil. Silakan masuk menggunakan akun Anda.",
+    true
+  );
+
+}
+
+
+async function loginCustomer() {
+
+  const email =
+    document.getElementById("loginEmail").value.trim();
+
+  const password =
+    document.getElementById("loginPassword").value;
+
+  const message =
+    document.getElementById("loginMessage");
+
+
+  if (!email || !password) {
+
+    showMessage(
+      message,
+      "Masukkan email dan password.",
+      false
+    );
+
+    return;
+  }
+
+
+  const { data, error } =
+    await supabaseClient.auth.signInWithPassword({
+
+      email: email,
+
+      password: password
+
+    });
+
+
+  if (error) {
+
+    showMessage(
+      message,
+      "Email atau password salah.",
+      false
+    );
+
+    return;
+  }
+
+
+  showMessage(
+    message,
+    "Login berhasil...",
+    true
+  );
+
+
+  setTimeout(function () {
+
+    window.location.href = "index.html";
+
+  }, 800);
+
+}
+
+
+function showMessage(element, text, success) {
+
+  element.textContent = text;
+
+  element.className =
+    success
+      ? "message success"
+      : "message error";
+
+}
+
+</script>
+
+</body>
+</html>
